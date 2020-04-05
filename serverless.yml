@@ -1,0 +1,57 @@
+service: serverless-aws-nodejs
+
+custom:
+  tableName: 'users-${self:provider.stage}'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["UserTable", "Arn" ] }
+  environment:
+    USER_TABLE: ${self:custom.tableName}
+
+functions:
+  create:
+    handler: users/create.create
+    events:
+      - http:
+          path: users
+          method: post
+
+  get:
+    handler: users/get.get
+    events:
+      - http:
+          path: users/{id}
+          method: get
+
+resources:
+  Resources:
+    UserTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
